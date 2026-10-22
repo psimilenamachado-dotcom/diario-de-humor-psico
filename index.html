@@ -87,6 +87,8 @@ textarea{min-height:110px;resize:vertical;line-height:1.55}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
 .btn{font:inherit;font-weight:600;border-radius:999px;padding:12px 20px;cursor:pointer;border:1.5px solid var(--ink);background:var(--ink);color:var(--paper)}
 .btn.ghost{background:transparent;color:var(--ink)}
+.btn.wa{background:var(--sage);border-color:var(--sage);color:var(--paper)}
+.wa-note{font-size:.85rem;color:var(--soft);margin:10px 0 0;max-width:56ch}
 .status{min-height:1.5em;margin-top:12px;color:var(--sage);font-size:.92rem}
 
 .history{margin-top:48px;padding-top:26px;border-top:1px solid var(--line)}
@@ -225,8 +227,10 @@ footer p{margin:0 0 10px}
 
   <div class="actions">
     <button class="btn" id="salvar">Salvar registro</button>
+    <button class="btn wa" id="whats">Enviar para a Milena pelo WhatsApp</button>
     <button class="btn ghost" id="copiar">Copiar registro</button>
   </div>
+  <p class="wa-note">O WhatsApp abre com o registro já escrito, é só tocar em enviar. Sua psicóloga lê as mensagens nos horários de atendimento, então este envio não substitui um pedido de ajuda urgente.</p>
   <div class="status" id="status" role="status" aria-live="polite"></div>
 
   <section class="history">
@@ -237,6 +241,7 @@ footer p{margin:0 0 10px}
     <div class="week" id="week"></div>
     <div class="entries" id="entries"></div>
     <div class="actions">
+      <button class="btn wa" id="whatsSemana">Enviar últimos 7 dias pelo WhatsApp</button>
       <button class="btn ghost" id="copiarSemana">Copiar últimos 7 dias</button>
       <button class="btn ghost" id="copiarTudo">Copiar tudo para a psicóloga</button>
     </div>
@@ -265,6 +270,7 @@ const CUIDADOS=["Me movimentei","Saí de casa","Peguei sol ou ar livre","Convers
 const SUBST=["Não usei","Usei pouco","Usei mais do que gostaria"];
 const FUNC=[["Abaixo do habitual","Foi difícil fazer o básico"],["No habitual","Dei conta do que costumo dar"],["Acima do habitual","Fiz bem mais que o normal"]];
 const SEG=["Não","Passaram rapidamente","Sim, e estão fortes"];
+const WHATS="5551996074885";
 const KEY="registro-humor-v2", OLD="registro-humor-v1";
 const OLDMAP={"Baixo / deprimido":"Pra baixo","Estável":"Tranquila","Elevado / expansivo":"Acelerada","Irritável / agitado":"Irritada","Oscilante ou misto":"Oscilando","Menos de 5 horas":"Menos de 5h","5–7 horas":"De 5 a 7h","7–9 horas":"De 7 a 9h","Mais de 9 horas":"Mais de 9h","Habitual":"No habitual"};
 const BLANK=()=>({humor:null,emocoes:[],energia:null,ansiedade:null,sono:null,sonoQual:null,alim:null,medic:null,cuidados:[],subst:null,func:null,seg:null});
@@ -422,6 +428,22 @@ $("salvar").onclick=()=>{
   renderHistory();
 };
 $("copiar").onclick=()=>copy(texto($("nome").value.trim(),$("data").value||hoje(),atual()),"Registro copiado.");
+function enviarWhats(t){
+  const url=`https://wa.me/${WHATS}?text=${encodeURIComponent(t)}`;
+  const w=window.open(url,"_blank","noopener");
+  if(!w)location.href=url;
+}
+$("whats").onclick=()=>{
+  const db=load();const d=$("data").value||hoje();db.nome=$("nome").value.trim();db.reg[d]=atual();
+  if(save(db))renderHistory();
+  enviarWhats("Oi, Milena! Segue meu registro do diário de humor.\n\n"+texto(db.nome,d,db.reg[d]));
+  flash("Registro salvo. Abrindo o WhatsApp…");
+};
+$("whatsSemana").onclick=()=>{
+  const db=load();const ds=ultimos(7).filter(d=>db.reg[d]);
+  if(!ds.length){flash("Não há registros salvos nos últimos 7 dias.");return}
+  enviarWhats(`Oi, Milena! Seguem meus registros dos últimos 7 dias (${ds.length}).\n\n`+ds.map(d=>texto(db.nome,d,db.reg[d])).join("\n\n"));
+};
 $("copiarSemana").onclick=()=>copiarDatas(ultimos(7),"Não há registros salvos nos últimos 7 dias.");
 $("copiarTudo").onclick=()=>copiarDatas(Object.keys(load().reg).sort(),"Ainda não há registros salvos para copiar.");
 </script>
